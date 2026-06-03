@@ -1,15 +1,15 @@
 ﻿namespace TicketSystem.Models
 {
-    public class Comments
+    public class Comment
     {
         public int CommentId { get; set; }
         public string Message { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public int TicketId { get; set; }
-        public Tickets Ticket { get; set; } = null!;
+        public Ticket Ticket { get; set; } = null!;
 
         public int UserId { get; set; }
-        public Users User { get; set; } = null!;
+        public User User { get; set; } = null!;
     }
 }
