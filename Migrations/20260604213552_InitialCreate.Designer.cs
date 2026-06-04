@@ -12,7 +12,7 @@ using TicketSystem.Data;
 namespace TicketSystem.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260603232532_InitialCreate")]
+    [Migration("20260604213552_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -114,6 +114,10 @@ namespace TicketSystem.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
