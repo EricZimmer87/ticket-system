@@ -9,8 +9,8 @@
         public TicketStatus Status { get; set; } = TicketStatus.Open;
         public Priority Priority { get; set; } = Priority.Medium;
 
-        public int UserId { get; set; }
-        public User User { get; set; } = null!;
+        public string AppUserId { get; set; } = string.Empty;
+        public AppUser AppUser { get; set; } = null!;
 
         public ICollection<Comment> Comments { get; set; } = [];
     }

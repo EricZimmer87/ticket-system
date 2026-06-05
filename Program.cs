@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TicketSystem.Data;
+using TicketSystem.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,16 +23,12 @@ var connectionString =
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Register the Identity DbContext with the dependency injection container
-builder.Services.AddDbContext<AppIdentityDbContext>(options =>
-   options.UseSqlServer(connectionString));
-
 // Add authorization services to dependency injection container
 builder.Services.AddAuthorization();
 
 // Activate Identity APIs
-builder.Services.AddIdentityApiEndpoints<IdentityUser>()
-    .AddEntityFrameworkStores<AppIdentityDbContext>();
+builder.Services.AddIdentityApiEndpoints<AppUser>()
+    .AddEntityFrameworkStores<AppDbContext>();
 
 var app = builder.Build();
 
@@ -50,7 +46,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapIdentityApi<IdentityUser>();
+app.MapIdentityApi<AppUser>();
 
 app.MapControllers();
 
