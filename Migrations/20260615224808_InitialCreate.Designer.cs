@@ -12,7 +12,7 @@ using TicketSystem.Data;
 namespace TicketSystem.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260615154910_InitialCreate")]
+    [Migration("20260615224808_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
