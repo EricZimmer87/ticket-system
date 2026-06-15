@@ -29,10 +29,16 @@ namespace TicketSystem.Data
             // Configure User -> Ticket relationship
             // Prevent deleting a User if Tickets exist
             modelBuilder.Entity<Ticket>()
-                .HasOne(t => t.AppUser)
-                .WithMany(u => u.Tickets)
-                .HasForeignKey(t => t.AppUserId)
+                .HasOne(t => t.CreatedByUser)
+                .WithMany(u => u.CreatedTickets)
+                .HasForeignKey(t => t.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict); // Can use Restrict or NoAction
+
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.UpdatedByUser)
+                .WithMany(u => u.UpdatedTickets)
+                .HasForeignKey(t => t.UpdatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

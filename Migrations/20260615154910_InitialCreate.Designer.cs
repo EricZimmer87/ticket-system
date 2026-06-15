@@ -12,7 +12,7 @@ using TicketSystem.Data;
 namespace TicketSystem.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260605182921_InitialCreate")]
+    [Migration("20260615154910_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -262,12 +262,12 @@ namespace TicketSystem.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TicketId"));
 
-                    b.Property<string>("AppUserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -283,9 +283,17 @@ namespace TicketSystem.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("TicketId");
 
-                    b.HasIndex("AppUserId");
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("UpdatedByUserId");
 
                     b.ToTable("Tickets");
                 });
@@ -362,20 +370,29 @@ namespace TicketSystem.Migrations
 
             modelBuilder.Entity("TicketSystem.Models.Ticket", b =>
                 {
-                    b.HasOne("TicketSystem.Models.AppUser", "AppUser")
-                        .WithMany("Tickets")
-                        .HasForeignKey("AppUserId")
+                    b.HasOne("TicketSystem.Models.AppUser", "CreatedByUser")
+                        .WithMany("CreatedTickets")
+                        .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("AppUser");
+                    b.HasOne("TicketSystem.Models.AppUser", "UpdatedByUser")
+                        .WithMany("UpdatedTickets")
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("UpdatedByUser");
                 });
 
             modelBuilder.Entity("TicketSystem.Models.AppUser", b =>
                 {
                     b.Navigation("Comments");
 
-                    b.Navigation("Tickets");
+                    b.Navigation("CreatedTickets");
+
+                    b.Navigation("UpdatedTickets");
                 });
 
             modelBuilder.Entity("TicketSystem.Models.Ticket", b =>

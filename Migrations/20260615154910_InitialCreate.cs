@@ -163,18 +163,26 @@ namespace TicketSystem.Migrations
                     TicketId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
                     Priority = table.Column<int>(type: "int", nullable: false),
-                    AppUserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    CreatedByUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    UpdatedByUserId = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Tickets", x => x.TicketId);
                     table.ForeignKey(
-                        name: "FK_Tickets_AspNetUsers_AppUserId",
-                        column: x => x.AppUserId,
+                        name: "FK_Tickets_AspNetUsers_CreatedByUserId",
+                        column: x => x.CreatedByUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Tickets_AspNetUsers_UpdatedByUserId",
+                        column: x => x.UpdatedByUserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -258,9 +266,14 @@ namespace TicketSystem.Migrations
                 column: "TicketId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Tickets_AppUserId",
+                name: "IX_Tickets_CreatedByUserId",
                 table: "Tickets",
-                column: "AppUserId");
+                column: "CreatedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tickets_UpdatedByUserId",
+                table: "Tickets",
+                column: "UpdatedByUserId");
         }
 
         /// <inheritdoc />
