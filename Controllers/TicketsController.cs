@@ -116,9 +116,13 @@ namespace TicketSystem.Controllers
         }
 
         // PUT /api/Tickets/5 updates a ticket
-        [HttpPost("{id}")]
+        [HttpPut("{id}")]
         public async Task<ActionResult<TicketResponse>> UpdateTicket(UpdateTicketRequest request, int id)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+                return Unauthorized();
+
             var ticket = await _context.Tickets
                 .Where(t => t.TicketId == id)
                 .FirstOrDefaultAsync();
@@ -126,8 +130,34 @@ namespace TicketSystem.Controllers
             if (ticket == null)
                 return NotFound();
 
-            ticket.Title = request.Title,
+            ticket.Title = request.Title;
+            ticket.Description = request.Description;
+            ticket.Status = request.Status;
+            ticket.Priority = request.Priority;
+            ticket.UpdatedByUserId = userId;
+            ticket.UpdatedAt = DateTime.UtcNow;
 
+            await _context.SaveChangesAsync();
+
+            var response = await _context.Tickets
+                .AsNoTracking()
+                .Where(t => t.TicketId == id)
+                .Select(t => new TicketResponse
+                {
+                    TicketId = t.TicketId,
+                    CreatedByUserName = t.CreatedByUser.UserName ?? "",
+                    UpdatedByUserName = t.UpdatedByUser != null
+                        ? t.UpdatedByUser.UserName : null,
+                    UpdatedAt = t.UpdatedAt,
+                    Priority = t.Priority,
+                    CreatedAt = t.CreatedAt,
+                    Title = t.Title,
+                    Description = t.Description,
+                    Status = t.Status
+                })
+                .FirstAsync();
+
+            return Ok(response);
         }
     }
 }
