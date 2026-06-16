@@ -1,17 +1,16 @@
-﻿using System.Linq;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using TicketSystem.Data;
 using TicketSystem.DTOs.Tickets;
 using TicketSystem.Models;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 
 namespace TicketSystem.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class TicketsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -21,6 +20,7 @@ namespace TicketSystem.Controllers
             _context = context;
         }
 
+        // GET /api/Tickets/5 gets ticket by ID
         [HttpGet("{id}")]
         public async Task<ActionResult<TicketResponse>> GetTicketById(int id)
         {
@@ -34,6 +34,7 @@ namespace TicketSystem.Controllers
                     UpdatedByUserName = t.UpdatedByUser != null
                         ? t.UpdatedByUser.UserName
                         : null,
+                    UpdatedAt = t.UpdatedAt,
                     Priority = t.Priority,
                     CreatedAt = t.CreatedAt,
                     Title = t.Title,
@@ -48,16 +49,19 @@ namespace TicketSystem.Controllers
             return Ok(response);
         }
 
+        // GET /api/Tickets gets all tickets
         [HttpGet]
         public async Task<ActionResult<List<TicketResponse>>> GetTickets()
         {
             var response = await _context.Tickets
+                .AsNoTracking()
                 .Select(t => new TicketResponse
                 {
                     TicketId = t.TicketId,
-                    CreatedByUserName = t.CreatedByUser.UserName!,
-                    UpdatedByUserName = t.UpdatedByUser != null 
+                    CreatedByUserName = t.CreatedByUser.UserName ?? "",
+                    UpdatedByUserName = t.UpdatedByUser != null
                         ? t.UpdatedByUser.UserName : null,
+                    UpdatedAt = t.UpdatedAt,
                     Priority = t.Priority,
                     CreatedAt = t.CreatedAt,
                     Title = t.Title,
@@ -69,7 +73,7 @@ namespace TicketSystem.Controllers
             return Ok(response);
         }
 
-        [Authorize]
+        // POST /api/Tickets creates a new ticket
         [HttpPost]
         public async Task<ActionResult<TicketResponse>> CreateTicket(CreateTicketRequest request)
         {
@@ -82,7 +86,8 @@ namespace TicketSystem.Controllers
             {
                 CreatedByUserId = userId,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedByUserId = userId,
+                UpdatedByUserId = null,
+                UpdatedAt = null,
                 Priority = request.Priority,
                 Title = request.Title,
                 Description = request.Description,
@@ -100,13 +105,29 @@ namespace TicketSystem.Controllers
                 CreatedAt = newTicket.CreatedAt,
                 Title = newTicket.Title,
                 Description = newTicket.Description,
-                Status = newTicket.Status
+                Status = newTicket.Status,
+                UpdatedAt = newTicket.UpdatedAt
             };
 
             return CreatedAtAction(
                 nameof(GetTicketById),
                 new { id = response.TicketId },
                 response);
+        }
+
+        // PUT /api/Tickets/5 updates a ticket
+        [HttpPost("{id}")]
+        public async Task<ActionResult<TicketResponse>> UpdateTicket(UpdateTicketRequest request, int id)
+        {
+            var ticket = await _context.Tickets
+                .Where(t => t.TicketId == id)
+                .FirstOrDefaultAsync();
+
+            if (ticket == null)
+                return NotFound();
+
+            ticket.Title = request.Title,
+
         }
     }
 }
