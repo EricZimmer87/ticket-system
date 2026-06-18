@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using TicketSystem.Data;
@@ -42,6 +43,7 @@ builder.Services.AddAuthorization();
 
 // Activate Identity APIs
 builder.Services.AddIdentityApiEndpoints<AppUser>()
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>();
 
 var app = builder.Build();
@@ -63,5 +65,30 @@ app.UseAuthorization();
 app.MapIdentityApi<AppUser>();
 
 app.MapControllers();
+
+// Seed roles
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+
+    if (!await roleManager.RoleExistsAsync(Roles.Admin))
+    {
+        await roleManager.CreateAsync(new IdentityRole(Roles.Admin));
+    }
+
+    if (!await roleManager.RoleExistsAsync(Roles.User))
+    {
+        await roleManager.CreateAsync(new IdentityRole(Roles.User));
+    }
+
+    // Seed an admin user
+    var user = await userManager.FindByEmailAsync("ericzimmer87@fastmail.com");
+
+    if (user != null && !await userManager.IsInRoleAsync(user, Roles.Admin))
+    {
+        await userManager.AddToRoleAsync(user, Roles.Admin);
+    }
+}
 
 app.Run();

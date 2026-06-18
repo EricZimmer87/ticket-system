@@ -204,6 +204,7 @@ namespace TicketSystem.Controllers
 
         // DELETE /api/tickets/5 deletes a ticket
         // TODO: [Authorize("{Role: Admin}")]
+        [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteTicket(int id)
         {
             var ticket = await _context.Tickets
