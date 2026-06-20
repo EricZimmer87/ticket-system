@@ -51,10 +51,29 @@ namespace TicketSystem.Controllers
 
         // GET /api/Tickets gets all tickets
         [HttpGet]
-        public async Task<ActionResult<List<TicketResponse>>> GetTickets()
+        public async Task<ActionResult<PagedTicketResponse>> GetTickets(int pageNumber = 1, int pageSize = 10)
         {
-            var response = await _context.Tickets
+            // pageNumber and pageSize must be greater than 0
+            if (pageNumber <= 0)
+                return BadRequest($"{nameof(pageNumber)} must be greater than 0.");
+            if (pageSize <= 0)
+                return BadRequest($"{nameof(pageSize)} must be greater than 0.");
+
+            // Max pageSize is 100
+            if (pageSize > 100)
+                return BadRequest("Maximum page size is 100.");
+
+            // Total tickets count
+            var totalTickets = await _context.Tickets
                 .AsNoTracking()
+                .CountAsync();
+
+            // Use offset pagination to get tickets, projecting directly into TicketResponse
+            var tickets = await _context.Tickets
+                .AsNoTracking()
+                .OrderBy(t => t.TicketId)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(t => new TicketResponse
                 {
                     TicketId = t.TicketId,
@@ -69,6 +88,19 @@ namespace TicketSystem.Controllers
                     Status = t.Status
                 })
                 .ToListAsync();
+
+            var totalPages = (int)Math.Ceiling(totalTickets / (double)pageSize);
+
+            var response = new PagedTicketResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalTickets,
+                TotalPages = totalPages,
+                HasNextPage = pageNumber < totalPages,
+                HasPreviousPage = pageNumber > 1,
+                Items = tickets
+            };
 
             return Ok(response);
         }
@@ -203,8 +235,8 @@ namespace TicketSystem.Controllers
         }
 
         // DELETE /api/tickets/5 deletes a ticket
-        // TODO: [Authorize("{Role: Admin}")]
         [HttpDelete("{id}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult> DeleteTicket(int id)
         {
             var ticket = await _context.Tickets
