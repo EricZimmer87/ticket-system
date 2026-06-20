@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using TicketSystem.Data;
 using TicketSystem.DTOs.Comments;
+using TicketSystem.DTOs.Shared;
 using TicketSystem.Models;
 
 namespace TicketSystem.Controllers
@@ -43,17 +44,34 @@ namespace TicketSystem.Controllers
 
         // GET /api/tickets/{ticketId}/comments gets all comments for a specific ticket
         [HttpGet("/api/Tickets/{ticketId}/comments")]
-        public async Task<ActionResult<List<CommentResponse>>> GetCommentsByTicketId(int ticketId)
+        public async Task<ActionResult<PagedResponse<CommentResponse>>> GetCommentsByTicketId(int ticketId, int pageNumber = 1, int pageSize = 10)
         {
+            // pageNumber and pageSize must be greater than 0
+            if (pageNumber <= 0)
+                return BadRequest($"{nameof(pageNumber)} must be greater than 0.");
+            if (pageSize <= 0)
+                return BadRequest($"{nameof(pageSize)} must be greater than 0.");
+
+            // Max pageSize is 100
+            if (pageSize > 100)
+                return BadRequest("Maximum page size is 100.");
+
+            // Ensure ticket exists
             var ticketExists = await _context.Tickets
                 .AnyAsync(t => t.TicketId == ticketId);
             if (!ticketExists)
                 return NotFound();
 
-            var response = await _context.Comments
+            var commentsQuery = _context.Comments
                 .AsNoTracking()
-                .Where(c => c.TicketId == ticketId)
+                .Where(c => c.TicketId == ticketId);
+
+            var totalComments = await commentsQuery.CountAsync();
+
+            var comments = await commentsQuery
                 .OrderByDescending(c => c.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(c => new CommentResponse
                 {
                     CommentId = c.CommentId,
@@ -63,6 +81,19 @@ namespace TicketSystem.Controllers
                     CreatedAt = c.CreatedAt
                 })
                 .ToListAsync();
+
+            var totalPages = (int)Math.Ceiling(totalComments / (double)pageSize);
+
+            var response = new PagedResponse<CommentResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalComments,
+                TotalPages = totalPages,
+                HasNextPage = pageNumber < totalPages,
+                HasPreviousPage = pageNumber > 1,
+                Items = comments
+            };
 
             return Ok(response);
         }

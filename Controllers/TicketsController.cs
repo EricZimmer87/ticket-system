@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using TicketSystem.Data;
+using TicketSystem.DTOs.Shared;
 using TicketSystem.DTOs.Tickets;
 using TicketSystem.Models;
 
@@ -51,7 +52,7 @@ namespace TicketSystem.Controllers
 
         // GET /api/Tickets gets all tickets
         [HttpGet]
-        public async Task<ActionResult<PagedTicketResponse>> GetTickets(int pageNumber = 1, int pageSize = 10)
+        public async Task<ActionResult<PagedResponse<TicketResponse>>> GetTickets(int pageNumber = 1, int pageSize = 10)
         {
             // pageNumber and pageSize must be greater than 0
             if (pageNumber <= 0)
@@ -91,7 +92,7 @@ namespace TicketSystem.Controllers
 
             var totalPages = (int)Math.Ceiling(totalTickets / (double)pageSize);
 
-            var response = new PagedTicketResponse
+            var response = new PagedResponse<TicketResponse>
             {
                 PageNumber = pageNumber,
                 PageSize = pageSize,
