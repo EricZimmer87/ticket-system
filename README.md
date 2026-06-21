@@ -110,3 +110,14 @@ Thinking about what SQL code EF Core is generating made a lot of the framework m
 - Relational database design
 
 This project is intended as a small learning project and portfolio piece focused on back-end development rather than a production-ready ticketing system.
+
+## Screenshots
+
+- Swagger Home
+  ![Swagger Home](screenshots/home.png)
+- Create New Ticket
+  ![Create New Ticket](screenshots/create-new-ticket.png)
+- Add Comment
+  ![Add Comment](screenshots/add-comment.png)
+- Get Tickets
+  ![Get Tickets](screenshots/get-tickets.png)
