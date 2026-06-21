@@ -25,27 +25,40 @@ namespace TicketSystem.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<TicketResponse>> GetTicketById(int id)
         {
-            var response = await _context.Tickets
+            // Load related users because the response uses navigation properties.
+            // Without .Include(), EF Core only loads the Ticket entity. Projecting
+            // directly to a DTO is an alternative that generates the required JOINs.
+            // I chose to load the Ticket entity first so I can validate ownership and
+            // return Forbid() when appropriate instead of projecting directly to a DTO.
+            var ticket = await _context.Tickets
                 .AsNoTracking()
-                .Where(t => t.TicketId == id)
-                .Select(t => new TicketResponse
-                {
-                    TicketId = t.TicketId,
-                    CreatedByUserName = t.CreatedByUser.UserName!,
-                    UpdatedByUserName = t.UpdatedByUser != null
-                        ? t.UpdatedByUser.UserName
-                        : null,
-                    UpdatedAt = t.UpdatedAt,
-                    Priority = t.Priority,
-                    CreatedAt = t.CreatedAt,
-                    Title = t.Title,
-                    Description = t.Description,
-                    Status = t.Status
-                })
-                .FirstOrDefaultAsync();
+                .Include(t => t.CreatedByUser)
+                .Include(t => t.UpdatedByUser)
+                .FirstOrDefaultAsync(t => t.TicketId == id);
 
-            if (response == null)
+            if (ticket == null)
                 return NotFound();
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!User.IsInRole(Roles.Admin) &&
+                ticket.CreatedByUserId != userId)
+            {
+                return Forbid();
+            }
+
+            var response = new TicketResponse
+            {
+                TicketId = ticket.TicketId,
+                CreatedByUserName = ticket.CreatedByUser.UserName!,
+                UpdatedByUserName = ticket.UpdatedByUser?.UserName,
+                UpdatedAt = ticket.UpdatedAt,
+                Priority = ticket.Priority,
+                CreatedAt = ticket.CreatedAt,
+                Title = ticket.Title,
+                Description = ticket.Description,
+                Status = ticket.Status
+            };
 
             return Ok(response);
         }
@@ -64,14 +77,24 @@ namespace TicketSystem.Controllers
             if (pageSize > 100)
                 return BadRequest("Maximum page size is 100.");
 
-            // Total tickets count
-            var totalTickets = await _context.Tickets
-                .AsNoTracking()
-                .CountAsync();
+            // Start query
+            IQueryable<Ticket> query = _context.Tickets.AsNoTracking();
 
-            // Use offset pagination to get tickets, projecting directly into TicketResponse
-            var tickets = await _context.Tickets
-                .AsNoTracking()
+            // Get user ID
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // If the current user is not an admin, only show tickets created by the currently logged in user
+            if (!User.IsInRole(Roles.Admin))
+            {
+                query = query.Where(t => t.CreatedByUserId == userId);
+
+            }
+
+            // Get total tickets count
+            var totalTickets = await query.CountAsync();
+
+            // Finish query, project into responses
+            var ticketResponses = await query
                 .OrderBy(t => t.TicketId)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
@@ -80,7 +103,8 @@ namespace TicketSystem.Controllers
                     TicketId = t.TicketId,
                     CreatedByUserName = t.CreatedByUser.UserName ?? "",
                     UpdatedByUserName = t.UpdatedByUser != null
-                        ? t.UpdatedByUser.UserName : null,
+                    ? t.UpdatedByUser.UserName
+                    : null,
                     UpdatedAt = t.UpdatedAt,
                     Priority = t.Priority,
                     CreatedAt = t.CreatedAt,
@@ -100,7 +124,7 @@ namespace TicketSystem.Controllers
                 TotalPages = totalPages,
                 HasNextPage = pageNumber < totalPages,
                 HasPreviousPage = pageNumber > 1,
-                Items = tickets
+                Items = ticketResponses
             };
 
             return Ok(response);
@@ -152,16 +176,17 @@ namespace TicketSystem.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<TicketResponse>> UpdateTicket(UpdateTicketRequest request, int id)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null)
-                return Unauthorized();
-
+            // Get ticket
             var ticket = await _context.Tickets
-                .Where(t => t.TicketId == id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(t => t.TicketId == id);
 
             if (ticket == null)
                 return NotFound();
+
+            //Owner or Admin ?
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!User.IsInRole(Roles.Admin) && userId != ticket.CreatedByUserId)
+                return Forbid();
 
             ticket.Title = request.Title;
             ticket.Description = request.Description;
@@ -196,6 +221,7 @@ namespace TicketSystem.Controllers
 
         // PATCH /api/tickets/5/status updates a ticket's status
         [HttpPatch("{id}/status")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<TicketResponse>> UpdateTicketStatus(UpdateTicketStatusRequest request, int id)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
