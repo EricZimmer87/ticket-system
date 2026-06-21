@@ -25,11 +25,14 @@ namespace TicketSystem.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<TicketResponse>> GetTicketById(int id)
         {
-            // Load related users because the response uses navigation properties.
-            // Without .Include(), EF Core only loads the Ticket entity. Projecting
-            // directly to a DTO is an alternative that generates the required JOINs.
-            // I chose to load the Ticket entity first so I can validate ownership and
-            // return Forbid() when appropriate instead of projecting directly to a DTO.
+            /*
+             Load related users because the response uses navigation properties.
+             Without .Include(), EF Core only loads the Ticket entity. Projecting
+             directly to a DTO is an alternative that generates the required JOINs.
+             I chose to load the Ticket entity first so I can validate ownership and
+             return Forbid() when appropriate instead of projecting directly to a DTO.
+            */
+
             var ticket = await _context.Tickets
                 .AsNoTracking()
                 .Include(t => t.CreatedByUser)
